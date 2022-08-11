@@ -3,6 +3,9 @@ title: "Day 4 - Comp session"
 format: html
 editor: visual
 ---
+```{r}
+library(tidyverse)
+```
 
 ```{r}
 quarter_splits <- c(1.0, 1.1, 1.2, 1.1, 1.4, 1.5, 1.6, 1.4)
@@ -28,7 +31,7 @@ double_this(200)
 double_this(c(1, 2, 10, 100, 175))
 ```
 
-Your turn: Write a function that asks for a user's name and age and returns an exclamation, like "I'm [name], and I am [age] years old."
+Your turn: Write a function that asks for a user's name and age and returns an exclamation, like "I'm \[name\], and I am \[age\] years old."
 
 ```{r}
 exclaim_name_and_age <- function(name, age) {
@@ -85,5 +88,129 @@ means_over_columns <- function(df) {
 means_over_columns(df = mtcars)
 
 means_over_columns(df = faithful)
+```
+
+## Practice
+```{r}
+animals <- c("orcas","band-rumped storm petre", "monarch butterfly","snow leopards" )
+territories <- c("salish sea","hawai'i", "mazahua","Buryat")
+ 
+animal_territory <- matrix(nrow=length(animals), ncol=length(territories))
+
+for (i in seq_along(animals)) {
+  for (j in seq_along(territories)) {
+    joined <- paste(territories[j],animals[i])
+    animal_territory[i, j] <- joined
+  }
+}
+
+animal_territory
+```
+
+## Logistic growth
+
+Modeling a populartion over time and varying growth rate
+
+```{r}
+my_function <- function(oranges, rainbows) {
+  (oranges + rainbows / 2.4)**2
+} # shortcut cmnd+opt+x
+```
+
+```{r}
+logistic_growth <- function(K, N0, r, time) {
+  K / (1 + ((K - N0) / N0) * exp(-r * time))
+}
+
+# test
+logistic_growth(5000, 100, 0.07, 42)
+```
+
+```{r}
+time_vec <- seq(from = 0, to = 35, by = 0.1)
+
+pop_35 <- logistic_growth(N0 = 40, K = 8000, r = 0.1, time = time_vec) # try r = .8
+
+pop_time35_df <- data.frame(time_vec, pop_35)
+```
+
+```{r}
+ggplot(data = pop_time35_df, aes(x = time_vec, y = pop_35)) +
+  geom_line(size = 0.5)
+```
+
+```{r}
+# to use a vector instead
+pop_35_vec <- vector(mode = "numeric", length = length(time_vec))
+
+for(i in seq_along(time_vec)) {
+  population <- logistic_growth(N0 = 100, K = 6000, r = 0.27, time = time_vec[i])
+  pop_35_vec[i] <- population
+}
+```
+
+Now extend this to iterate over multiple growth rates
+
+```{r}
+r_seq <- seq(from = 0.20, to = 0.40, by = 0.01)
+```
+
+```{r}
+# Create a for loop that goes through each, apply the 
+# logistic growth function for a range of times for each growth rate
+
+# Need to create a MATRIX to store the outputs in: 
+out_matrix <- matrix(nrow = length(time_vec), ncol = length(r_seq))
+
+# Now, a nested for loop:
+for (i in seq_along(r_seq)) { # Outer loop is the growth rates
+  for (j in seq_along(time_vec)) { # Inner loop is the time sequence values
+  pop <- logistic_growth(N0 = 100, K = 6000, r = r_seq[i], time = time_vec[j])
+  out_matrix[j, i] <- pop # Store the value in the appropriate row & column
+  } 
+}
+```
+
+```{r}
+# Let's wrangling it a little bit 
+out_df <- data.frame(out_matrix, time = time_vec) # Make it a data frame and add time
+
+# Update the column names of out_df, keeping time column name the same
+colnames(out_df) <- c(paste0("gr_", r_seq), "time")
+
+# pivot_longer to make it tidy (you'll learn more about this next week)
+out_df_long <- out_df %>% 
+  pivot_longer(cols = -time, names_to = "growth_rate", values_to = "population")
+
+# Then plot it: 
+ggplot(data = out_df_long, aes(x = time, y = population)) +
+  geom_line(aes(color = growth_rate)) +
+  theme_minimal()
+```
+
+## A function with warnings and an error message
+
+Warning for a warning and stop to add an error
+
+```{r}
+calc_windpower <- function(rho, radius, windspeed) {
+  
+  if (windspeed > 130) {
+    warning("Whoa, that's a high windspeed! Are you sure that's correct?")
+  }
+  
+  if (rho > 1.225) {
+    warning("That air density is suspicious.")
+  }
+  
+  if (radius < 0) {
+    stop("Rotor radius must be a positive value (meters).")
+  }
+  
+  0.3*rho*pi*(radius^2)*(windspeed^3)
+  
+}
+
+calc_windpower(2, -1, 131)
 ```
 
